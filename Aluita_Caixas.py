@@ -2,13 +2,21 @@ import configparser
 import sys
 import os
 import pandas as pd
+from tabulate import tabulate
+import builtins
 
 config = configparser.ConfigParser()
+log = ""
 
 '''
     # find on all cells first date of the sheet
 '''
 
+def print(message):
+    global log
+    log += message + "<br>"
+    builtins.print(message)
+    
 
 def getDateFirstDateOfSheet(sheet):
     # For each row and column, verify if the cell is a date, if is a date, return the date
@@ -46,6 +54,9 @@ def Aluita_Caixas(args):
         'year': 'Aluita Caixas',
     }
 
+    #Set inicial return log 'Aluita Caixas month/year'
+    print('Aluita Caixas ' + robot['month'] + '/' + robot['year'])
+
     # put 0 before the number
     month = str(robot['month']).zfill(2)
 
@@ -73,12 +84,17 @@ def Aluita_Caixas(args):
             if file.lower().endswith('.xlsx') and all(word.lower() in file.lower() for word in cashier_filter) and config['config']['edited_name'].lower() not in file.lower():
                 # Open file and read all sheets without use headers, from column A to column F
                 df = pd.read_excel(
-                    mainPath + file, sheet_name=None, header=None, usecols='A:F')
+                    mainPath + file, sheet_name=None, header=None, names=['A', 'B', 'C', 'D', 'E', 'F'])
 
+                #Dados para o sistema contabil
                 compact = []
+
+                #Totals differences
+                totalsDiffs = []
 
                 # For each sheet
                 for sheet in df:
+
                     # If sheet is not empty
                     if df[sheet].empty == False:
                         # Get the first date of the sheet
@@ -140,8 +156,7 @@ def Aluita_Caixas(args):
                                         valueType = "total"
                                         valueTitle = totalTitle
 
-                                        totals[valueTitle] += f
-                                        loat(row[-1])
+                                        totals[valueTitle] += float(row[-1])
 
                                     # If column is not a title and valueType is not empty and valueTitle is not empty
                                     elif title is None and valueType != "" and valueTitle != "":
@@ -175,7 +190,27 @@ def Aluita_Caixas(args):
                                                     'complemento historico': description,
                                                     'valor': value,
                                                 })
-                            print(totals)
+                            #Verifica se nos totais o total inserido é igual ao total, se for diferente, adiciona nas diferenças
+                            if totals['receiptsInserted'] != totals['receipts']:
+                                totalsDiffs.append({
+                                    'Aba': sheet,
+                                    'Tipo': 'Receitas',
+                                    'Total inserido': totals['receiptsInserted'],
+                                    'Total': totals['receipts'],
+                                    'Diferença': totals['receiptsInserted'] - totals['receipts'],
+                                })
+                            if totals['paymentsInserted'] != totals['payments']:
+                                totalsDiffs.append({
+                                    'Aba': sheet,
+                                    'Tipo': 'Pagamentos',
+                                    'Total inserido': totals['paymentsInserted'],
+                                    'Total': totals['payments'],
+                                    'Diferença': totals['paymentsInserted'] - totals['payments'],
+                                })
+                #Se existem diferenças, converte as differenças para tabela html com o tabulate e printa na tela
+                if len(totalsDiffs) > 0:
+                    print("Diferenças encontradas na aba " + sheet + ":")
+                    print(tabulate(totalsDiffs, headers='keys', tablefmt='html'))
 
                 # Convert to dataframe
                 compact = pd.DataFrame(compact)
@@ -193,6 +228,10 @@ def Aluita_Caixas(args):
                 break
         else:
             print('Nenhum arquivo encontrado para: ' + cashier)
+    
+    #Salva o log em um arquivo html na area de trabalho
+    with open(mainPath + 'log.html', 'w') as f:
+        f.write(log)
 
 
 # call the main function passing the argument list
