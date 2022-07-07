@@ -81,8 +81,8 @@ def getParamInSectionWithFilters(section, text):
 
 
 def Aluita_Caixas(robot):
-    # read config file aluita_caixas.ini
-    config.read('aluita_caixas.ini')
+    # read config file aluita_caixas.ini using utf-8 encoding
+    config.read('aluita_caixas.ini', encoding='utf-8')
 
     #Set inicial return log 'Aluita Caixas month/year'
     print('Aluita Caixas ' + str(robot['month']) + '/' + str(robot['year']))
