@@ -295,12 +295,12 @@ def Aluita_Caixas(robot):
                     break
             else:
                 print('Nenhum arquivo encontrado para: ' + cashier)
+
+        #Se nao existir nenhuma diferença em nenhum caixa, printa na tela
+        if cashiersWithDifferences == 0:
+            print("Nenhuma diferença encontrada")
     else:
         print('Pasta de arquivos ' + mainPath + ' não encontrada')
-
-    #Se nao existir nenhuma diferença em nenhum caixa, printa na tela
-    if cashiersWithDifferences == 0:
-        print("Nenhuma diferença encontrada")
 
     #Salva o log em um arquivo html na area de trabalho
     with open(mainPath + 'retorno robo caixas.html', 'w') as f:
