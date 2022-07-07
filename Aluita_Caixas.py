@@ -98,195 +98,205 @@ def Aluita_Caixas(robot):
     # cashiers folder in config paths.boletinscaixa
     mainPath = config['paths']['boletinscaixa']
 
-    # Get cashiers in cashier section
-    cashiers = config['cashiers'].keys()
+    #verify if folder exists
+    if os.path.exists(mainPath):
 
-    cashiersWithDifferences = 0
+        # Get cashiers in cashier section
+        cashiers = config['cashiers'].keys()
 
-    # For each cashier
-    for cashier in cashiers:
-        # Get cashier filter
-        cashier_filter = config['cashiers'][cashier]
-        # Put 'CAIXA' before filter
-        cashier_filter = 'caixa ' + cashier_filter
-        # create filters with cashier split by ' '
-        cashier_filter = cashier_filter.split(' ')
+        cashiersWithDifferences = 0
 
-        # Find on folder the first file with all strings in cashier_filter and has not config config.edited_name in name
-        for file in os.listdir(mainPath):
-            if file.lower().endswith('.xlsx') and all(word.lower() in file.lower() for word in cashier_filter) and config['config']['edited_name'].lower() not in file.lower():
-                df = None
-                
-                #if cashier is 'porto alegre'
-                if cashier == 'porto alegre':
-                    # Open file and read all sheets without use headers, from column A to column F
-                    df = pd.read_excel(
-                        mainPath + file, sheet_name=None, header=None,
-                        usecols=[0, 1, 2, 3, 4, 5],
-                    )
-                        #, names=['A', 'B', 'C', 'D', 'E', 'F'], usecols=["A:F"])
-                else:
-                    # Open file and read all sheets without use headers, from column A to column F
-                    df = pd.read_excel(
-                        mainPath + file, sheet_name=None, header=None, names=['A', 'B', 'C'])
+        # For each cashier
+        for cashier in cashiers:
+            # Get cashier filter
+            cashier_filter = config['cashiers'][cashier]
+            # Put 'CAIXA' before filter
+            cashier_filter = 'caixa ' + cashier_filter
+            # create filters with cashier split by ' '
+            cashier_filter = cashier_filter.split(' ')
 
-                #Dados para o sistema contabil
-                compact = []
+            # Find on folder the first file with all strings in cashier_filter and has not config config.edited_name in name
+            for file in os.listdir(mainPath):
+                if file.lower().endswith('.xlsx') and all(word.lower() in file.lower() for word in cashier_filter) and config['config']['edited_name'].lower() not in file.lower():                    
+                    try:
+                        df = None
+                        
+                        #if cashier is 'porto alegre'
+                        if cashier == 'porto alegre':
+                            # Open file and read all sheets without use headers, from column A to column F
+                            df = pd.read_excel(
+                                mainPath + file, sheet_name=None, header=None,
+                                usecols=[0, 1, 2, 3, 4, 5],
+                            )
+                        else:
+                            # Open file and read all sheets without use headers, from column A to column F
+                            df = pd.read_excel(
+                                mainPath + file, sheet_name=None, header=None, names=['A', 'B', 'C'])
 
-                #Totals differences
-                totalsDiffs = []
+                        #Dados para o sistema contabil
+                        compact = []
 
-                # For each sheet
-                for sheet in df:
+                        #Totals differences
+                        totalsDiffs = []
 
-                    # If sheet is not empty
-                    if df[sheet].empty == False:
-                        # Get the first date of the sheet
-                        date = getDateFirstDateOfSheet(df[sheet])
-                        # If date is not None and is in the same month and year
-                        if date is not None and pd.to_datetime(date).month == robot['month'] and pd.to_datetime(date).year == robot['year']:
-                            totals = {
-                                'receipts': 0,
-                                'payments': 0,
-                                'receiptsInserted': 0,
-                                'paymentsInserted': 0,
-                            }
+                        # For each sheet
+                        for sheet in df:
 
-                            valueTitle = ""
-                            valueType = ""
+                            # If sheet is not empty
+                            if df[sheet].empty == False:
+                                # Get the first date of the sheet
+                                date = getDateFirstDateOfSheet(df[sheet])
+                                # If date is not None and is in the same month and year
+                                if date is not None and pd.to_datetime(date).month == robot['month'] and pd.to_datetime(date).year == robot['year']:
+                                    totals = {
+                                        'receipts': 0,
+                                        'payments': 0,
+                                        'receiptsInserted': 0,
+                                        'paymentsInserted': 0,
+                                    }
 
-                            # For each row
-                            for row in df[sheet]._values:
-                                # Remove all nans
-                                row = [x for x in row if pd.isnull(x) == False]
+                                    valueTitle = ""
+                                    valueType = ""
 
-                                if len(row) > 0:
-                                    firstColumn = str(row[0])
+                                    # For each row
+                                    for row in df[sheet]._values:
+                                        # Remove all nans
+                                        row = [x for x in row if pd.isnull(x) == False]
 
-                                    paymentTitle = None
-                                    receiptTitle = None
-                                    totalTitle = None
-                                    title = None
+                                        if len(row) > 0:
+                                            firstColumn = str(row[0])
 
-                                    # Se o caixa for de poa
-                                    if cashier == 'porto alegre':
-                                        poaType = getParamInSectionWithFilters(
-                                            'POA', firstColumn)
-                                        if poaType == 'payments':
-                                            paymentTitle = "Pagamentos"
-                                        elif poaType == 'receipts' or poaType == 'antecipado':
-                                            receiptTitle = "Receitas"
-                                    else:
-                                        # Se nao for caixa poa verifica se é um titulo
-                                        paymentTitle = getParamInSectionWithFilters(
-                                            'payments', firstColumn)
-                                        receiptTitle = getParamInSectionWithFilters(
-                                            'receipts', firstColumn)
-                                        totalTitle = getParamInSectionWithFilters(
-                                            'totals', firstColumn)
-                                        title = getParamInSectionWithFilters(
-                                            'titles', firstColumn)
+                                            paymentTitle = None
+                                            receiptTitle = None
+                                            totalTitle = None
+                                            title = None
 
-                                    # If column is a payment
-                                    if paymentTitle is not None:
-                                        valueType = "payment"
-                                        valueTitle = paymentTitle
-                                    # If column is a receipt
-                                    elif receiptTitle is not None:
-                                        valueType = "receipt"
-                                        valueTitle = receiptTitle
-                                    # If column is a total
-                                    elif totalTitle is not None:
-                                        valueType = "total"
-                                        valueTitle = totalTitle
+                                            # Se o caixa for de poa
+                                            if cashier == 'porto alegre':
+                                                poaType = getParamInSectionWithFilters(
+                                                    'POA', firstColumn)
+                                                if poaType == 'payments':
+                                                    paymentTitle = "Pagamentos"
+                                                elif poaType == 'receipts' or poaType == 'antecipado':
+                                                    receiptTitle = "Receitas"
+                                            else:
+                                                # Se nao for caixa poa verifica se é um titulo
+                                                paymentTitle = getParamInSectionWithFilters(
+                                                    'payments', firstColumn)
+                                                receiptTitle = getParamInSectionWithFilters(
+                                                    'receipts', firstColumn)
+                                                totalTitle = getParamInSectionWithFilters(
+                                                    'totals', firstColumn)
+                                                title = getParamInSectionWithFilters(
+                                                    'titles', firstColumn)
 
-                                        totals[valueTitle] += float(row[-1])
-                                    # If column is a title
-                                    elif title is not None:
-                                        #Reset valueType and valueTitle
-                                        valueType = ""
-                                        valueTitle = ""
-                                    # If column is not a title and valueType is not empty and valueTitle is not empty
-                                    elif title is None and valueType != "" and valueTitle != "":
-                                        # description = valueTitle + first column + second column if has 3 columns)
-                                        description = " ".join(
-                                            ['Receita' if valueType == 'receipt' else 'Pagamento'
-                                                , valueTitle
-                                                , firstColumn
-                                                , (str(row[1]) if len(row) == 3 else '')
-                                            ]
-                                        )
-                                        # value = last column
-                                        value = row[-1]
-                                        #if value is int, convert to float
-                                        if isinstance(value, int):
-                                            value = float(value)
+                                            # If column is a payment
+                                            if paymentTitle is not None:
+                                                valueType = "payment"
+                                                valueTitle = paymentTitle
+                                            # If column is a receipt
+                                            elif receiptTitle is not None:
+                                                valueType = "receipt"
+                                                valueTitle = receiptTitle
+                                            # If column is a total
+                                            elif totalTitle is not None:
+                                                valueType = "total"
+                                                valueTitle = totalTitle
 
-                                        # If description is not empty and value is not empty and value is float and first column is not equal last column
-                                        if description != "" and value != "" and type(value) is float and str(firstColumn) != str(value):
-                                            #If valueType is receipt or payment
-                                            if valueType == "receipt" or valueType == "payment":
-                                                cashier_account = config['cashiers_accounts'][cashier]
-                                                config_section = valueType + 's_accounts'
-                                                
-                                                totals[valueType + 'sInserted'] += value
-                                                
-                                                #adiciona para a lista que será impressa em csv
-                                                compact.append({
-                                                    '#cod_empresa': config['config']['enterprise_code'],
-                                                    'data': date,
-                                                    'debito': cashier_account if not config.has_option(config_section, 'debit') else config[config_section]['debit'],
-                                                    'credito': cashier_account if not config.has_option(config_section, 'credit') else config[config_section]['credit'],
-                                                    'historico padrao': config[valueType + 's_accounts']['history'],
-                                                    'complemento historico': description,
-                                                    'valor': value,
-                                                })
-                            #round totals
-                            totals['receiptsInserted'] = round(totals['receiptsInserted'], 2)
-                            totals['paymentsInserted'] = round(totals['paymentsInserted'], 2)
-                            totals['receipts'] = round(totals['receipts'], 2)
-                            totals['payments'] = round(totals['payments'], 2)
+                                                totals[valueTitle] += float(row[-1])
+                                            # If column is a title
+                                            elif title is not None:
+                                                #Reset valueType and valueTitle
+                                                valueType = ""
+                                                valueTitle = ""
+                                            # If column is not a title and valueType is not empty and valueTitle is not empty
+                                            elif title is None and valueType != "" and valueTitle != "":
+                                                # description = valueTitle + first column + second column if has 3 columns)
+                                                description = " ".join(
+                                                    ['Receita' if valueType == 'receipt' else 'Pagamento'
+                                                        , valueTitle
+                                                        , firstColumn
+                                                        , (str(row[1]) if len(row) == 3 else '')
+                                                    ]
+                                                )
+                                                # value = last column
+                                                value = row[-1]
+                                                #if value is int, convert to float
+                                                if isinstance(value, int):
+                                                    value = float(value)
 
-                            #Verifica se nos totais o total inserido é igual ao total e se o totals não é 0, se for diferente, adiciona nas diferenças
-                            if str(totals['receiptsInserted']) != str(totals['receipts']) and totals['receipts'] != 0:
-                                totalsDiffs.append({
-                                    'Nome da Aba': sheet,
-                                    'Dia Considerado': date,
-                                    'Tipo': 'Receitas',
-                                    'Total inserido': totals['receiptsInserted'],
-                                    'Total': totals['receipts'],
-                                    'Diferença': totals['receiptsInserted'] - totals['receipts'],
-                                })
-                            if totals['paymentsInserted'] != totals['payments'] and totals['payments'] != 0:
-                                totalsDiffs.append({
-                                    'Nome da Aba': sheet,
-                                    'Dia Considerado': date,
-                                    'Tipo': 'Pagamentos',
-                                    'Total inserido': totals['paymentsInserted'],
-                                    'Total': totals['payments'],
-                                    'Diferença': totals['paymentsInserted'] - totals['payments'],
-                                })
-                #Se existem diferenças, converte as differenças para tabela html com o tabulate e printa na tela
-                if len(totalsDiffs) > 0:
-                    cashiersWithDifferences += 1
-                    print("Diferenças encontradas no caixa <strong>" + cashier.title() + ":</strong>")
-                    print(tabulate(totalsDiffs, headers='keys', tablefmt='html'))
-                # Convert to dataframe
-                compact = pd.DataFrame(compact)
+                                                # If description is not empty and value is not empty and value is float and first column is not equal last column
+                                                if description != "" and value != "" and type(value) is float and str(firstColumn) != str(value):
+                                                    #If valueType is receipt or payment
+                                                    if valueType == "receipt" or valueType == "payment":
+                                                        cashier_account = config['cashiers_accounts'][cashier]
+                                                        config_section = valueType + 's_accounts'
+                                                        
+                                                        totals[valueType + 'sInserted'] += value
+                                                        
+                                                        #adiciona para a lista que será impressa em csv
+                                                        compact.append({
+                                                            '#cod_empresa': config['config']['enterprise_code'],
+                                                            'data': date,
+                                                            'debito': cashier_account if not config.has_option(config_section, 'debit') else config[config_section]['debit'],
+                                                            'credito': cashier_account if not config.has_option(config_section, 'credit') else config[config_section]['credit'],
+                                                            'historico padrao': config[valueType + 's_accounts']['history'],
+                                                            'complemento historico': description,
+                                                            'valor': value,
+                                                        })
+                                    #round totals
+                                    totals['receiptsInserted'] = round(totals['receiptsInserted'], 2)
+                                    totals['paymentsInserted'] = round(totals['paymentsInserted'], 2)
+                                    totals['receipts'] = round(totals['receipts'], 2)
+                                    totals['payments'] = round(totals['payments'], 2)
 
-                # Save to csv splited by ;
-                compact.to_csv(
-                    mainPath +
-                    file.replace('.xlsx', ' ' + config['config']['edited_name'] + '.csv')
-                    , sep=';'
-                    , index=False
-                    , encoding='utf-8'
-                )
+                                    #Verifica se nos totais o total inserido é igual ao total e se o totals não é 0, se for diferente, adiciona nas diferenças
+                                    if str(totals['receiptsInserted']) != str(totals['receipts']) and totals['receipts'] != 0:
+                                        totalsDiffs.append({
+                                            'Nome da Aba': sheet,
+                                            'Dia Considerado': date,
+                                            'Tipo': 'Receitas',
+                                            'Total inserido': totals['receiptsInserted'],
+                                            'Total': totals['receipts'],
+                                            'Diferença': totals['receiptsInserted'] - totals['receipts'],
+                                        })
+                                    if totals['paymentsInserted'] != totals['payments'] and totals['payments'] != 0:
+                                        totalsDiffs.append({
+                                            'Nome da Aba': sheet,
+                                            'Dia Considerado': date,
+                                            'Tipo': 'Pagamentos',
+                                            'Total inserido': totals['paymentsInserted'],
+                                            'Total': totals['payments'],
+                                            'Diferença': totals['paymentsInserted'] - totals['payments'],
+                                        })
+                        #Se existem diferenças, converte as differenças para tabela html com o tabulate e printa na tela
+                        if len(totalsDiffs) > 0:
+                            cashiersWithDifferences += 1
+                            print("Diferenças encontradas no caixa <strong>" + cashier.title() + ":</strong>")
+                            print(tabulate(totalsDiffs, headers='keys', tablefmt='html'))
+                        # Convert to dataframe
+                        compact = pd.DataFrame(compact)
 
-                # break for file in folder
-                break
-        else:
-            print('Nenhum arquivo encontrado para: ' + cashier)
+                        # Save to csv splited by ;
+                        compact.to_csv(
+                            mainPath +
+                            file.replace('.xlsx', ' ' + config['config']['edited_name'] + '.csv')
+                            , sep=';'
+                            , index=False
+                            , encoding='utf-8'
+                        )
+
+                    except Exception as e:
+                        print("Erro ao processar arquivo " + mainPath + file + ": " + str(e))
+                        print("")
+                        continue
+
+                    # break for file in folder
+                    break
+            else:
+                print('Nenhum arquivo encontrado para: ' + cashier)
+    else:
+        print('Pasta de arquivos ' + mainPath + ' não encontrada')
 
     #Se nao existir nenhuma diferença em nenhum caixa, printa na tela
     if cashiersWithDifferences == 0:
