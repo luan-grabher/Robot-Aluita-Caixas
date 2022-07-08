@@ -1,11 +1,13 @@
 import configparser
 from datetime import datetime
 import json
+from pathlib import Path
 import sys
 import os
 import pandas as pd
 from tabulate import tabulate
 import builtins
+import logging
 from robotpy.Robot import Robot
 
 config = configparser.ConfigParser()
@@ -115,8 +117,8 @@ def Aluita_Caixas(robot):
             # create filters with cashier split by ' '
             cashier_filter = cashier_filter.split(' ')
 
-            # Find on folder the first file with all strings in cashier_filter and has not config config.edited_name in name
-            for file in os.listdir(mainPath):
+            for file in os.listdir(Path(mainPath)):
+                # Find on folder the first file with all strings in cashier_filter and has not config config.edited_name in name
                 if file.lower().endswith('.xlsx') and all(word.lower() in file.lower() for word in cashier_filter) and config['config']['edited_name'].lower() not in file.lower():                    
                     try:
                         df = None
@@ -327,8 +329,10 @@ try:
             Aluita_Caixas({'month': mes, 'year': ano})
             robot.setReturn(log)
         except Exception as e:
+            logging.exception(e)
             robot.setReturn("Erro desconhecido: " + str(e))
     except Exception as e:
+        print(e)
         robot.setReturn("Parametros passados invalidos: " + json.dumps(robot.parameters))
 except Exception as e:
     print(e)
