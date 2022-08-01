@@ -279,13 +279,13 @@ def Aluita_Caixas(robot):
                         # Convert to dataframe
                         compact = pd.DataFrame(compact)
 
-                        # Save to csv splited by ;
+                        # Save to csv splited by ; using encoding iso-8859-1
                         compact.to_csv(
                             mainPath +
                             file.replace('.xlsx', ' ' + config['config']['edited_name'] + '.csv')
                             , sep=';'
                             , index=False
-                            , encoding='utf-8'
+                            , encoding='iso-8859-1'
                         )
 
                     except Exception as e:
@@ -310,7 +310,7 @@ def Aluita_Caixas(robot):
 
 #Protection against running the script twice
 try:
-    mes_teste = 5
+    mes_teste = 6
     ano_teste = 2022
 
     #Se existir argumentos, define o call_id como o primeiro parametro, se não, define como None
