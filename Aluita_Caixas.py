@@ -238,13 +238,13 @@ def Aluita_Caixas(robot):
                                                         
                                                         #adiciona para a lista que será impressa em csv
                                                         compact.append({
-                                                            '#cod_empresa': config['config']['enterprise_code'],
                                                             'data': date,
                                                             'debito': cashier_account if not config.has_option(config_section, 'debit') else config[config_section]['debit'],
                                                             'credito': cashier_account if not config.has_option(config_section, 'credit') else config[config_section]['credit'],
                                                             'historico padrao': config[valueType + 's_accounts']['history'],
                                                             'complemento historico': description,
-                                                            'valor': value,
+                                                            #convert value to string and use Brazilian currency format
+                                                            'valor': '{:.2f}'.format(value).replace('.', ','),
                                                         })
                                     #round totals
                                     totals['receiptsInserted'] = round(totals['receiptsInserted'], 2)
