@@ -179,8 +179,10 @@ def Aluita_Caixas(robot):
                                                     'POA', firstColumn)
                                                 if poaType == 'payments':
                                                     paymentTitle = "Pagamentos"
-                                                elif poaType == 'receipts' or poaType == 'antecipado':
+                                                elif poaType == 'receipts':
                                                     receiptTitle = "Receitas"
+                                                elif poaType != None:
+                                                    title = poaType
                                             else:
                                                 # Se nao for caixa poa verifica se é um titulo
                                                 paymentTitle = getParamInSectionWithFilters(
