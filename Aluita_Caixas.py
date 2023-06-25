@@ -34,16 +34,17 @@ def stringIsInDateFormat(string, dateFormat):
     except:
         return None
 
-def getDateFirstDateOfSheet(sheet):
-    # For each row and column, verify if the cell is a date, if is a date, return the date
-    for row in sheet._values:
+def getDateFirstDateOfSheet(sheetDataframe, sheetName):
+    rows = sheetDataframe._values
+
+    for row in rows:
         for column in row:
             # if column is not None and is not nan
             if pd.isnull(column) == False:
                 try:
                     #If type of column is datetime or string
                     if type(column) is str or type(column) is datetime:
-                        #If column is string, consider BR date format on convert to date dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+                        #If column is string, consider BR date format on convert to date dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy or dd/mm/yy or dd-mm-yy or dd.mm.yy
                         if isinstance(column, str):
                             if stringIsInDateFormat(column, '%d/%m/%Y'):
                                 return pd.to_datetime(column, format='%d/%m/%Y').strftime('%Y-%m-%d')
@@ -51,11 +52,18 @@ def getDateFirstDateOfSheet(sheet):
                                 return pd.to_datetime(column, format='%d-%m-%Y').strftime('%Y-%m-%d')
                             elif stringIsInDateFormat(column, '%d.%m.%Y'):
                                 return pd.to_datetime(column, format='%d.%m.%Y').strftime('%Y-%m-%d')
+                            elif stringIsInDateFormat(column, '%d/%m/%y'):
+                                return pd.to_datetime(column, format='%d/%m/%y').strftime('%Y-%m-%d')
+                            elif stringIsInDateFormat(column, '%d-%m-%y'):
+                                return pd.to_datetime(column, format='%d-%m-%y').strftime('%Y-%m-%d')
+                            elif stringIsInDateFormat(column, '%d.%m.%y'):
+                                return pd.to_datetime(column, format='%d.%m.%y').strftime('%Y-%m-%d')
                         # if column is a date
                         else:
                             #convert date to sql date
                             return pd.to_datetime(column).strftime('%Y-%m-%d')
                 except:
+                    print('Error on get date of sheet' + ' on row ' + str(row) + ' and column ' + str(column))
                     pass
 
     return None
@@ -131,9 +139,9 @@ def Aluita_Caixas(robot):
                                 usecols=[0, 1, 2, 3, 4, 5],
                             )
                         else:
-                            # Open file and read all sheets without use headers, from column A to column F
+                            # Open file and read all sheets without use headers, from column A to column C
                             df = pd.read_excel(
-                                mainPath + file, sheet_name=None, header=None, names=['A', 'B', 'C'])
+                                mainPath + file, sheet_name=None, header=None, usecols=[0, 1, 2])                            
 
                         #Dados para o sistema contabil
                         compact = []
@@ -147,7 +155,7 @@ def Aluita_Caixas(robot):
                             # If sheet is not empty
                             if df[sheet].empty == False:
                                 # Get the first date of the sheet
-                                date = getDateFirstDateOfSheet(df[sheet])
+                                date = getDateFirstDateOfSheet(df[sheet], str(sheet))
                                 # If date is not None and is in the same month and year
                                 if date is not None and pd.to_datetime(date).month == robot['month'] and pd.to_datetime(date).year == robot['year']:
                                     totals = {
@@ -312,8 +320,8 @@ def Aluita_Caixas(robot):
 
 #Protection against running the script twice
 try:
-    mes_teste = 6
-    ano_teste = 2022
+    mes_teste = 5
+    ano_teste = 2023
 
     #Se existir argumentos, define o call_id como o primeiro parametro, se não, define como None
     call_id = sys.argv[1] if len(sys.argv) > 1 else None
